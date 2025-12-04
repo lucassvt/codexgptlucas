@@ -78,3 +78,11 @@ https://erp.duxsoftware.com.ar/WSERP/rest/services/facturas\
 ## Notas
 - El servicio aplica rate limit (“Has alcanzado el límite de frecuencia…”). Si ocurre, espera al menos 10–15 segundos antes de repetir.
 - Los parámetros distinguen mayúsculas/minúsculas (`idEmpresa`, `fechaDesde`, etc.).
+
+## Script de apoyo
+- Archivo: dux_api_examples.py
+- Uso:
+  1) Define DUX_TOKEN en tu entorno con el token de Dux.
+  2) Importa funciones como get_depositos(), get_facturas(params), get_compras(params), etc.
+  3) Si quieres correr la demo, descomenta la l�nea demo() en el __main__ del script.
+  4) Respeta el rate limit (el demo incluye un sleep entre llamadas).
