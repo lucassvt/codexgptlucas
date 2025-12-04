@@ -50,6 +50,25 @@ https://erp.duxsoftware.com.ar/WSERP/rest/services/facturas\
   &offset=0
 ```
 
+### Compras
+- GET `/compras`
+- Requiere rango de fechas (`fechaDesde`, `fechaHasta`) y posiblemente `idEmpresa`/`idSucursal` (el servicio devuelve mensaje de error si faltan fechas).
+
+### Otros GET disponibles (listados)
+- `/empresas`
+- `/items`
+- `/listaprecioventa`
+- `/localidades`
+- `/pedidos`
+- `/percepcionesImpuestos`
+- `/personales`
+- `/provincias`
+- `/rubros`
+- `/subrubros`
+- `/sucursales`
+- `/obtenerEstadoFactura`
+- `/obtenerEstadoItem`
+
 ## Ejemplos de respuesta (resumidos)
 - `facturas` devuelve `paging` y `results` con campos como:
   - `tipo_comp`, `letra_comp`, `nro_pto_vta`, `nro_comp`, `fecha_comp`, `total`
