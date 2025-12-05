@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Objetivos de Ventas</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --primary: #0057d9;
+      --muted: #6b7280;
+      --success: #16a34a;
+      --danger: #dc2626;
+    }
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color: #1f2937; }
+    header { padding: 16px 24px; background: #0b1533; color: #fff; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .card { background: var(--card); border-radius: 12px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); flex: 1; min-width: 240px; }
+    .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .value { font-size: 24px; font-weight: 700; margin: 4px 0; }
+    .sub { color: var(--muted); font-size: 14px; }
+    .progress { height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .progress > div { height: 100%; background: var(--primary); }
+    .section-title { margin: 24px 0 12px; font-size: 20px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; text-align: left; }
+    th { background: #f3f4f6; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    tr:nth-child(every) { background: #f9fafb; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; color: #fff; }
+    .pill.success { background: var(--success); }
+    .pill.danger { background: var(--danger); }
+    select { padding: 8px 10px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; }
+    @media (max-width: 768px) { .row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Objetivos de Ventas</h1>
+    <div id="subtitle"></div>
+  </header>
+  <div class="container">
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
+      <div>
+        <label class="label">Vendedor</label><br />
+        <select id="vendorSelect"></select>
+      </div>
+      <div>
+        <label class="label">Periodo</label><br />
+        <select id="periodSelect">
+          <option value="2025-09">2025-09</option>
+          <option value="2025-10">2025-10</option>
+          <option value="2025-11">2025-11</option>
+        </select>
+      </div>
+      <button id="refreshBtn" style="padding:10px 14px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer;">Actualizar</button>
+    </div>
+
+    <div class="row" id="cards"></div>
+
+    <div class="section-title">Facturas recientes</div>
+    <div class="card">
+      <table id="facturasTable">
+        <thead>
+          <tr>
+            <th>ID</th><th>Fecha</th><th>Tipo</th><th>PV</th><th>Número</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Vista Admin (avance por vendedor)</div>
+    <div class="card">
+      <table id="adminTable">
+        <thead>
+          <tr><th>Vendedor</th><th>Sucursal</th><th>% Total</th><th>% Estrella</th><th>% SENDA 20kg</th><th>% JASPE ≥3kg</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const vendorSelect = document.getElementById('vendorSelect');
+    const periodSelect = document.getElementById('periodSelect');
+    const cards = document.getElementById('cards');
+    const facturasTableBody = document.querySelector('#facturasTable tbody');
+    const adminTableBody = document.querySelector('#adminTable tbody');
+    const subtitle = document.getElementById('subtitle');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    const api = async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Error ' + res.status);
+      return res.json();
+    };
+
+    const fmt = (n) => n == null ? '—' : new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(n);
+
+    const renderCards = (data) => {
+      const items = [
+        { title: 'Ventas totales', value: data.total, goal: data.objetivo_total, pct: data.avance_total_pct },
+        { title: 'Producto estrella', value: data.estrella, goal: data.objetivo_estrella, pct: data.avance_estrella_pct },
+        { title: 'SENDA AD 20kg (unidades)', value: data.senda20_unidades, goal: data.objetivo_senda20, pct: data.avance_senda20_pct },
+        { title: 'JASPE ≥3kg (unidades)', value: data.jaspe3kg_unidades, goal: data.objetivo_jaspe3, pct: data.avance_jaspe3_pct },
+      ];
+      cards.innerHTML = '';
+      items.forEach(({ title, value, goal, pct }) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <div class="label">${title}</div>
+          <div class="value">${fmt(value)}</div>
+          <div class="sub">Objetivo: ${fmt(goal)} | Avance: ${pct ?? 0}%</div>
+          <div class="progress"><div style="width:${Math.min(pct || 0, 150)}%"></div></div>
+        `;
+        cards.appendChild(div);
+      });
+    };
+
+    const renderFacturas = (facturas) => {
+      facturasTableBody.innerHTML = '';
+      (facturas || []).forEach(f => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${f.id}</td><td>${f.fecha}</td><td>${f.tipo_comp || '—'}</td><td>${f.nro_pto_vta || '—'}</td><td>${f.nro_comp || '—'}</td><td>${fmt(f.total)}</td>`;
+        facturasTableBody.appendChild(tr);
+      });
+    };
+
+    const renderAdmin = async (periodo) => {
+      const data = await api(`/api/admin/kpi?periodo=${periodo}`);
+      adminTableBody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.vendedor}</td>
+          <td>${row.sucursal_id}</td>
+          <td>${row.avance_total_pct ?? 0}%</td>
+          <td>${row.avance_estrella_pct ?? 0}%</td>
+          <td>${row.avance_senda20_pct ?? 0}%</td>
+          <td>${row.avance_jaspe3_pct ?? 0}%</td>
+        `;
+        adminTableBody.appendChild(tr);
+      });
+    };
+
+    const loadVendors = async () => {
+      const v = await api('/api/vendors');
+      vendorSelect.innerHTML = '';
+      v.forEach(vn => {
+        const opt = document.createElement('option');
+        opt.value = vn.id;
+        opt.textContent = vn.nombre;
+        vendorSelect.appendChild(opt);
+      });
+    };
+
+    const refresh = async () => {
+      const vendedor = vendorSelect.value;
+      const periodo = periodSelect.value;
+      subtitle.textContent = `Vendedor: ${vendorSelect.options[vendorSelect.selectedIndex].text} | Periodo: ${periodo}`;
+      const data = await api(`/api/kpi?vendedor_id=${vendedor}&periodo=${periodo}`);
+      renderCards(data);
+      renderFacturas(data.facturas);
+      renderAdmin(periodo);
+    };
+
+    refreshBtn.addEventListener('click', refresh);
+
+    (async () => {
+      await loadVendors();
+      await refresh();
+    })();
+  </script>
+</body>
+</html>
